@@ -1,0 +1,86 @@
+# =============================================================================
+# ZendroxTech E-Commerce & Management System - .gitignore
+# =============================================================================
+
+# --- Environment & Sensitive Credentials ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*credential*.json
+
+# --- Python & Backend ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- Node.js & Frontend ---
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --- Database Dumps & Heavy Backups ---
+live_db_backup.sql
+initial_db_dump.sql
+base de datos zendroxtech*
+*.backup*
+*.dump
+*.tar.gz
+
+# --- Media & Heavy Uploads ---
+# Track the directory structure but ignore large videos and user uploads
+uploads/laptops/*
+!uploads/laptops/.gitkeep
+*.mp4
+*.webm
+*.mov
+
+# --- Logs & Runtime ---
+*.log
+tunnel.log
+
+# --- Notes & Assistant Scratchpads ---
+gemini_answer.md
+*.tmp
+*.scratch
+
+# --- IDEs & OS Metadata ---
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,304 @@
+{
+  "name": "notas de entrega (Webhook POS)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "notas-entrega",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -60,
+        448
+      ],
+      "id": "webhook-pos-trigger",
+      "name": "Webhook POS",
+      "webhookId": "notas-entrega"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalizador de datos: soporta payload directo desde el POS (JSON) o desde Telegram\nconst inputData = $input.item.json.body || $input.item.json;\n\nif (inputData.nombre_cliente) {\n  // 1. Limpiar cédula para evitar duplicar el 'V-' que ya tiene la plantilla de Google Docs\n  let cedulaLimpia = String(inputData.cedula_cliente || '').trim();\n  cedulaLimpia = cedulaLimpia.replace(/^[vV]-?/, '');\n\n  // 2. Limpiar precio: si viene con '.00', quitarlo para que encaje con ',00$' de la plantilla\n  let precioLimpio = String(inputData.precio || '').trim();\n  if (precioLimpio.includes('.')) {\n    const partes = precioLimpio.split('.');\n    if (partes[1] === '00' || partes[1] === '0') {\n      precioLimpio = partes[0];\n    }\n  }\n\n  // 3. Garantía\n  const meses = String(inputData.garantia_meses || 3);\n  const dias = String(inputData.garantia_dias || (parseInt(meses, 10) * 30));\n\n  return [{\n    json: {\n      nombre_cliente: inputData.nombre_cliente,\n      telefono_cliente: inputData.telefono_cliente,\n      cedula_cliente: cedulaLimpia,\n      ubicacion: inputData.ubicacion,\n      metodo_pago: inputData.metodo_pago,\n      correo: inputData.correo || 'ventas@zendroxtech.com',\n      precio: precioLimpio,\n      modelo: inputData.modelo,\n      numero_orden: inputData.numero_orden,\n      fecha_hoy: inputData.fecha_hoy,\n      meses: meses,\n      dias: dias\n    }\n  }];\n}\n\n// Fallback si por alguna razón viniera texto plano\nif (inputData.message && inputData.message.text) {\n  const lineas = inputData.message.text.split('\\n');\n  if (lineas.length >= 10) {\n    let cedulaLimpia = lineas[2].trim().replace(/^[vV]-?/, '');\n    let precioLimpio = lineas[6].trim();\n    if (precioLimpio.includes('.')) {\n      const partes = precioLimpio.split('.');\n      if (partes[1] === '00' || partes[1] === '0') precioLimpio = partes[0];\n    }\n    return [{\n      json: {\n        nombre_cliente: lineas[0],\n        telefono_cliente: lineas[1],\n        cedula_cliente: cedulaLimpia,\n        ubicacion: lineas[3],\n        metodo_pago: lineas[4],\n        correo: lineas[5],\n        precio: precioLimpio,\n        modelo: lineas[7],\n        numero_orden: lineas[8],\n        fecha_hoy: lineas[9],\n        meses: '3',\n        dias: '90'\n      }\n    }];\n  }\n}\n\nthrow new Error('Formato de datos de venta no válido.');"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        448
+      ],
+      "id": "c356d6ce-5cca-4c39-82f0-c67a9ca0fcf2",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "1473006394",
+        "text": "=🛍️ *¡NUEVA VENTA CONFIRMADA EN POS!* 🚀\n\n📋 *Orden:* `{{ $json.numero_orden }}`\n👤 *Cliente:* {{ $json.nombre_cliente }}\n🪪 *Cédula:* V-{{ $json.cedula_cliente }}\n📞 *Teléfono:* {{ $json.telefono_cliente }}\n📍 *Ubicación:* {{ $json.ubicacion }}\n💻 *Equipo:* {{ $json.modelo }}\n💵 *Monto Total:* ${{ $json.precio }}.00\n💳 *Método de Pago:* {{ $json.metodo_pago }}\n🛡️ *Garantía:* {{ $json.meses }} meses ({{ $json.dias }} días)\n📅 *Fecha:* {{ $json.fecha_hoy }}\n\n✅ _Inventario actualizado y Libro Diario registrado con éxito._",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        280,
+        600
+      ],
+      "id": "telegram-notif-pos",
+      "name": "Notificación Telegram POS",
+      "credentials": {
+        "telegramApi": {
+          "id": "notasEntregaBotCred",
+          "name": "Bot Notas de Entrega"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "copy",
+        "fileId": {
+          "__rl": true,
+          "value": "1hv0yBmAuj-TrH_x7kJiFTdoy5IyKSQ09--snk_hpHoI",
+          "mode": "id"
+        },
+        "name": "=nota de entrega {{ $json.nombre_cliente }} {{ $json.numero_orden }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        280,
+        448
+      ],
+      "id": "f3263bee-2884-4b6f-af19-5ca87b5bfb10",
+      "name": "Copy file",
+      "continueOnFail": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "tyWvwW8QhKmi5xAJ",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentURL": "={{ $json.id }}",
+        "actionsUi": {
+          "actionFields": [
+            {
+              "action": "replaceAll",
+              "text": "{{nombre_cliente}}",
+              "replaceText": "={{ $('Code in JavaScript').item.json.nombre_cliente }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{precio}}",
+              "replaceText": "={{ $('Code in JavaScript').item.json.precio }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{modelo_laptop}}",
+              "replaceText": "={{ $('Code in JavaScript').item.json.modelo }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{Cedula_cliente}}",
+              "replaceText": "={{ $('Code in JavaScript').item.json.cedula_cliente }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{cedula_cliente}}",
+              "replaceText": "={{ $('Code in JavaScript').item.json.cedula_cliente }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{telefono_cliente}}",
+              "replaceText": "={{ $('Code in JavaScript').item.json.telefono_cliente }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{ubicacion}}",
+              "replaceText": "={{ $('Code in JavaScript').item.json.ubicacion }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{metodo_pago}}",
+              "replaceText": "={{ $('Code in JavaScript').item.json.metodo_pago }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{numero_venta}}",
+              "replaceText": "={{ $('Code in JavaScript').item.json.numero_orden }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{Fecha}}",
+              "replaceText": "={{ $('Code in JavaScript').item.json.fecha_hoy }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{fecha}}",
+              "replaceText": "={{ $('Code in JavaScript').item.json.fecha_hoy }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{meses}}",
+              "replaceText": "={{ $('Code in JavaScript').item.json.meses }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{dias}}",
+              "replaceText": "={{ $('Code in JavaScript').item.json.dias }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        440,
+        448
+      ],
+      "id": "cb94f6ff-7d31-4e1e-a431-010106bee7b6",
+      "name": "Update a document",
+      "continueOnFail": true,
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "googleDocsOAuthCred",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.documentId }}",
+          "mode": "id"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "application/pdf"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        600,
+        448
+      ],
+      "id": "8c780971-acd1-43b9-b75e-9a2227d5adb6",
+      "name": "Download file",
+      "continueOnFail": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "tyWvwW8QhKmi5xAJ",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendDocument",
+        "chatId": "1473006394",
+        "binaryData": true,
+        "additionalFields": {
+          "fileName": "=nota de entrega {{ $('Code in JavaScript').item.json.nombre_cliente }} {{ $('Code in JavaScript').item.json.numero_orden }}.pdf",
+          "caption": "=🧾 *Nota de Entrega #{{ $('Code in JavaScript').item.json.numero_orden }}*\n👤 *Cliente:* {{ $('Code in JavaScript').item.json.nombre_cliente }}\n💻 *Equipo:* {{ $('Code in JavaScript').item.json.modelo }}\n💵 *Monto:* ${{ $('Code in JavaScript').item.json.precio }}.00\n💳 *Método de Pago:* {{ $('Code in JavaScript').item.json.metodo_pago }}\n🛡️ *Garantía:* {{ $('Code in JavaScript').item.json.meses }} meses\n📅 *Fecha:* {{ $('Code in JavaScript').item.json.fecha_hoy }}"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        760,
+        448
+      ],
+      "id": "968fba57-148d-473e-9fb9-d5f6ed084b3c",
+      "name": "Send a document",
+      "continueOnFail": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "notasEntregaBotCred",
+          "name": "Bot Notas de Entrega"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook POS": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Copy file",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notificación Telegram POS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Copy file": {
+      "main": [
+        [
+          {
+            "node": "Update a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a document": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Send a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "id": "WbPOSZendrox2026"
+}
