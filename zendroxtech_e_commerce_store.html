@@ -404,7 +404,48 @@
 
             <!-- Products Grid -->
             <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                <!-- Populated dynamically via JavaScript -->
+                <!-- Skeleton Loading Cards -->
+                <div class="animate-pulse bg-white rounded-xl border border-slate-200/90 p-4 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <div class="h-4 bg-slate-200 rounded w-1/4"></div>
+                        <div class="h-4 bg-slate-100 rounded w-1/5"></div>
+                    </div>
+                    <div class="h-44 bg-slate-100 rounded-lg flex items-center justify-center">
+                        <span class="text-xs text-slate-300 font-mono">Cargando catálogo...</span>
+                    </div>
+                    <div class="h-5 bg-slate-200 rounded w-3/4"></div>
+                    <div class="space-y-1.5 pt-2">
+                        <div class="h-3 bg-slate-100 rounded w-full"></div>
+                        <div class="h-3 bg-slate-100 rounded w-5/6"></div>
+                    </div>
+                    <div class="h-9 bg-slate-200 rounded-lg pt-1"></div>
+                </div>
+                <div class="animate-pulse bg-white rounded-xl border border-slate-200/90 p-4 space-y-3 hidden sm:block">
+                    <div class="flex justify-between items-center">
+                        <div class="h-4 bg-slate-200 rounded w-1/4"></div>
+                        <div class="h-4 bg-slate-100 rounded w-1/5"></div>
+                    </div>
+                    <div class="h-44 bg-slate-100 rounded-lg"></div>
+                    <div class="h-5 bg-slate-200 rounded w-3/4"></div>
+                    <div class="space-y-1.5 pt-2">
+                        <div class="h-3 bg-slate-100 rounded w-full"></div>
+                        <div class="h-3 bg-slate-100 rounded w-5/6"></div>
+                    </div>
+                    <div class="h-9 bg-slate-200 rounded-lg pt-1"></div>
+                </div>
+                <div class="animate-pulse bg-white rounded-xl border border-slate-200/90 p-4 space-y-3 hidden xl:block">
+                    <div class="flex justify-between items-center">
+                        <div class="h-4 bg-slate-200 rounded w-1/4"></div>
+                        <div class="h-4 bg-slate-100 rounded w-1/5"></div>
+                    </div>
+                    <div class="h-44 bg-slate-100 rounded-lg"></div>
+                    <div class="h-5 bg-slate-200 rounded w-3/4"></div>
+                    <div class="space-y-1.5 pt-2">
+                        <div class="h-3 bg-slate-100 rounded w-full"></div>
+                        <div class="h-3 bg-slate-100 rounded w-5/6"></div>
+                    </div>
+                    <div class="h-9 bg-slate-200 rounded-lg pt-1"></div>
+                </div>
             </div>
 
             <!-- Empty State -->
@@ -1091,7 +1132,7 @@
 
                         <!-- Product Image (Click opens detail modal) -->
                         <div onclick="openProductModal('${product.id}')" class="relative h-48 p-4 flex items-center justify-center cursor-pointer group">
-                            <img src="${displayImage}" alt="${product.name}" class="max-h-full max-w-full object-contain group-hover:scale-105 transition duration-300" onerror="this.src='https://placehold.co/600x400/1e293b/38bdf8?text=ZendroxTech'">
+                            <img src="${displayImage}" alt="${product.name}" loading="lazy" class="max-h-full max-w-full object-contain group-hover:scale-105 transition duration-300" onerror="this.src='https://placehold.co/600x400/1e293b/38bdf8?text=ZendroxTech'">
                             <div class="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/5 transition flex items-end justify-center pb-2">
                                 <span class="opacity-0 group-hover:opacity-100 bg-slate-900/90 text-white text-[11px] font-semibold px-3 py-1 rounded-full shadow transition">
                                     👁️ Ver ficha y enlace del modelo
@@ -1335,9 +1376,30 @@
         }
 
         window.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+                const lightbox = document.getElementById("lightboxModal");
+                if (lightbox && !lightbox.classList.contains("hidden")) {
+                    closeLightbox();
+                    return;
+                }
+                const prodModal = document.getElementById("productModal");
+                if (prodModal && !prodModal.classList.contains("hidden")) {
+                    closeProductModal();
+                    return;
+                }
+                const compModal = document.getElementById("comparatorModal");
+                if (compModal && !compModal.classList.contains("hidden")) {
+                    closeComparatorModal();
+                    return;
+                }
+                const infoModal = document.getElementById("infoModal");
+                if (infoModal && !infoModal.classList.contains("hidden")) {
+                    closeInfoModal();
+                    return;
+                }
+            }
             const lightbox = document.getElementById("lightboxModal");
             if (lightbox && !lightbox.classList.contains("hidden")) {
-                if (e.key === "Escape") closeLightbox();
                 if (e.key === "ArrowLeft") prevLightboxMedia();
                 if (e.key === "ArrowRight") nextLightboxMedia();
             }
@@ -1392,7 +1454,7 @@
                                     ▶ Video
                                 </div>
                             ` : `
-                                <img src="${mediaUrl}" class="w-full h-full object-contain" />
+                                <img src="${mediaUrl}" loading="lazy" class="w-full h-full object-contain" />
                             `}
                         </button>`;
                     }).join("");
@@ -1557,7 +1619,10 @@
         // Sincronización en tiempo real con la Base de Datos / API de Inventario
         window.addEventListener("DOMContentLoaded", async () => {
             try {
-                const response = await fetch("/api/public/laptops");
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 4000);
+                const response = await fetch("/api/public/laptops", { signal: controller.signal, cache: "no-store" });
+                clearTimeout(timeoutId);
                 if (response.ok) {
                     const data = await response.json();
                     if (Array.isArray(data) && data.length > 0) {
@@ -1565,7 +1630,7 @@
                     }
                 }
             } catch (err) {
-                console.warn("API de inventario no disponible, usando catálogo local:", err);
+                console.warn("API de inventario no disponible o con latencia, usando catálogo local:", err);
             }
 
             renderProducts();
