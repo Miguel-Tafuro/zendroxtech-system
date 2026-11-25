@@ -20,6 +20,28 @@ The platform eliminates inventory discrepancies, speeds up customer checkout, au
 
 ---
 
+## 📸 Platform Screenshots
+
+### 1. Public E-Commerce Storefront (`/`)
+> High-conversion customer catalog with live stock status, hardware filters, dynamic badges, and direct WhatsApp checkout.
+
+![Public Storefront](docs/screenshots/catalogo.png)
+
+### 2. Administrative POS & Real-Time Inventory (`/admin`)
+> Internal retail management dashboard, atomic 3FN hardware selector, stock locking, and multi-wallet checkout.
+
+<p align="center">
+  <img src="docs/screenshots/admin_1.png" alt="Admin Inventory" width="49%" />
+  <img src="docs/screenshots/admin_2.png" alt="Admin POS Checkout" width="49%" />
+</p>
+
+### 3. Automated Order Dispatch Pipeline (n8n Webhook)
+> Decoupled event-driven workflow generating Google Docs warranty PDFs and instant Telegram dispatch notifications.
+
+![n8n Workflow](docs/screenshots/n8n-workflow.png)
+
+---
+
 ## 🏗️ System Architecture
 
 ```mermaid
